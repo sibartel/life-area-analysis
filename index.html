@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Life Area Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Add Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <style>
+      /* Custom style for the debug button to make it stand out */
+      .debug-button {
+        background-color: #6B46C1; /* A shade of purple */
+        color: white;
+        transition: background-color 0.3s ease;
+      }
+      .debug-button:hover {
+        background-color: #5534a6; /* Darker purple on hover */
+      }
+      /* Style for the Gemini Insights button */
+      .gemini-button {
+        background-color: #10B981; /* Emerald green */
+        color: white;
+        transition: background-color 0.3s ease;
+      }
+      .gemini-button:hover {
+        background-color: #059669; /* Darker emerald on hover */
+      }
+      /* Modified loading spinner to be smaller and fit inside button */
+      .loading-spinner {
+        border: 3px solid rgba(255, 255, 255, 0.3); /* Lighter border for contrast */
+        border-top-color: #fff; /* White spinner */
+        border-radius: 50%;
+        width: 18px; /* Smaller size */
+        height: 18px; /* Smaller size */
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 8px; /* Space from text */
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .prose {
+        line-height: 1.6;
+        font-size: 1rem;
+      }
+      .prose h1 { font-size: 2em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
+      .prose h2 { font-size: 1.5em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
+      .prose h3 { font-size: 1.25em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
+      .prose p { margin-bottom: 1em; }
+      .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+      .prose ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
+      .prose li { margin-bottom: 0.5em; }
+      .prose strong { font-weight: bold; }
+      .prose em { font-style: italic; }
+
+      /* Custom style for Material Icons in buttons */
+      .material-icons {
+        font-size: 24px; /* Adjust size as needed */
+        vertical-align: middle;
+      }
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 p-6 font-sans">
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-md">
+      <!-- Main Title -->
+      <h2 class="text-3xl font-bold mb-6 text-gray-800 text-center">&#129517; Life Area Analysis</h2>
+
+      <!-- Report Management Section -->
+      <div id="reportManagement" class="mb-6 p-4 bg-gray-50 rounded-md border border-gray-200">
+        <h3 class="text-xl font-semibold mb-3 text-gray-700">Manage Reports:</h3>
+        <div class="flex flex-wrap items-center gap-4">
+          <label for="reportSelector" class="font-medium text-gray-700">Select Report:</label>
+          <select id="reportSelector" class="flex-grow max-w-xs border border-gray-300 rounded-md px-3 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <!-- Options populated by JavaScript -->
+          </select>
+          <button
+            type="button"
+            id="createNewReportButton"
+            class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-md flex items-center justify-center"
+            title="Create New Report"
+          >
+            <span class="material-icons">add</span>
+          </button>
+          <button
+            type="button"
+            id="compareReportsButton"
+            class="px-4 py-2 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 shadow-md flex items-center justify-center"
+            title="Compare Reports"
+          >
+            <span class="material-icons">compare_arrows</span>
+          </button>
+          <button
+            type="button"
+            id="deleteReportButton"
+            class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 shadow-md flex items-center justify-center"
+            title="Delete Active Report"
+          >
+            <span class="material-icons">delete</span>
+          </button>
+          <button
+            type="button"
+            id="fillRandomButton"
+            class="px-4 py-2 debug-button font-semibold rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 shadow-md flex items-center justify-center"
+            title="Fill with Random Values"
+          >
+            <span class="material-icons">casino</span>
+          </button>
+          <button
+              type="button"
+              id="exportDataButton"
+              class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 shadow-md flex items-center justify-center"
+              title="Export All Data"
+          >
+              <span class="material-icons">download</span>
+          </button>
+          <label for="importFile" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 shadow-md cursor-pointer flex items-center justify-content-center"
+            title="Import Data"
+          >
+              <span class="material-icons">upload_file</span>
+              <input type="file" id="importFile" accept=".json" class="hidden">
+          </label>
+           <!-- Settings Button -->
+           <button
+            type="button"
+            id="settingsButton"
+            class="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 shadow-md flex items-center justify-center"
+            title="Settings"
+          >
+            <span class="material-icons">settings</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category Filter Section -->
+      <div class="mb-6 p-4 bg-gray-50 rounded-md border border-gray-200">
+        <h3 class="text-xl font-semibold mb-3 text-gray-700">Category Filter & Color Legend:</h3>
+        <div id="categoryFilter" class="flex flex-wrap gap-4 text-sm font-medium items-center">
+          <!-- Checkboxes will be dynamically added here by JavaScript -->
+        </div>
+      </div>
+
+      <form id="dataForm" class="space-y-6">
+        <div class="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
+          <table class="min-w-full table-auto bg-white">
+            <thead>
+              <tr class="bg-gray-200 text-left text-gray-700 uppercase text-sm">
+                <th class="px-4 py-3 border-b-2 border-gray-300">ID</th>
+                <th class="px-4 py-3 border-b-2 border-gray-300">Description</th>
+                <th class="px-4 py-3 border-b-2 border-gray-300">Importance (0-10)</th>
+                <th class="px-4 py-3 border-b-2 border-gray-300">Satisfaction (0-10)</th>
+                <th class="px-4 py-3 border-b-2 border-gray-300">Time Spent (0-10)</th>
+                <th class="px-4 py-3 border-b-2 border-gray-300">Notes</th>
+              </tr>
+            </thead>
+            <tbody id="formRows"></tbody>
+          </table>
+        </div>
+      </form>
+
+      <!-- The chart container now holds both title and canvas, and has a fixed height -->
+      <div class="mt-10 p-6 bg-gray-50 rounded-lg border border-gray-200 relative">
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">Graphical Analysis:</h3>
+        <div class="h-[550px]"> 
+          <canvas id="scatterChart" class="w-full h-full"></canvas>
+        </div>
+      </div>
+
+      <!-- LLM Insights Section (Visibility controlled by JavaScript) -->
+      <div id="insightsSection" class="hidden mt-10 p-6 bg-gray-50 rounded-lg border border-gray-200">
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">Personal Insights from Gemini:</h3>
+        <button
+            type="button"
+            id="getInsightsButton"
+            class="px-8 py-3 gemini-button font-semibold rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-50 shadow-md flex items-center justify-center mb-4"
+        >
+            <span id="getInsightsButtonText">Get Insights ✨</span>
+            <span id="getInsightsLoadingContent" class="hidden flex items-center">
+                <span class="loading-spinner"></span>
+                <span class="ml-2" id="getInsightsLoadingText">Generating insights...</span>
+            </span>
+        </button>
+        
+        <div id="insightsOutput" class="text-gray-700 prose max-w-none">
+          <p class="text-gray-500">Click "Get Insights ✨" to receive personalized advice based on your data.</p>
+        </div>
+      </div>
+
+      <!-- Custom Confirmation Modal -->
+      <div id="confirmationModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+          <p id="confirmationMessage" class="text-lg text-gray-800 mb-4"></p>
+          <div class="flex justify-end gap-3">
+            <button id="confirmYes" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">Yes</button>
+            <button id="confirmNo" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">No</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Modal -->
+      <div id="settingsModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+          <h3 class="text-2xl font-bold mb-6 text-gray-800 text-center">App Settings</h3>
+          <div class="space-y-4">
+            <div>
+              <label for="geminiApiKeyInput" class="block text-gray-700 text-sm font-bold mb-2">
+                Gemini API Key:
+              </label>
+              <input
+                type="text"
+                id="geminiApiKeyInput"
+                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                placeholder="Enter your Gemini API Key here"
+              >
+              <p class="text-xs text-red-500 mt-1">An API key is required to unlock AI functionality.</p>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3 mt-8">
+            <button id="saveSettingsButton" class="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
+            <button id="cancelSettingsButton" class="px-5 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparison Modal -->
+      <!-- BUGFIX: Removed 'items-center' to fix scrolling to the top -->
+      <div id="comparisonModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-6xl w-full my-8 mx-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-2xl font-bold text-gray-800">Compare Reports</h3>
+            <button id="closeComparisonModalButton" class="text-gray-500 hover:text-gray-800">
+                <span class="material-icons text-3xl">close</span>
+            </button>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-4 mb-4">
+            <div class="flex-1">
+              <label for="comparisonReportA" class="block text-sm font-medium text-gray-700 mb-1">Older Report (A)</label>
+              <select id="comparisonReportA" class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"></select>
+            </div>
+            <div class="flex-1">
+              <label for="comparisonReportB" class="block text-sm font-medium text-gray-700 mb-1">Newer Report (B)</label>
+              <select id="comparisonReportB" class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"></select>
+            </div>
+          </div>
+          <div id="comparisonCategoryFilter" class="flex flex-wrap gap-2 text-sm font-medium items-center mb-4">
+            <!-- Comparison filters will be dynamically added here -->
+          </div>
+          <div id="comparisonResultContainer">
+             <!-- The table will be rendered here with consistent styling -->
+          </div>
+          
+          <div id="comparisonInsightsSection" class="hidden mt-4 pt-4 border-t">
+              <h4 class="text-xl font-semibold mb-3 text-gray-700">Comparison Insights from Gemini:</h4>
+              <button
+                  type="button"
+                  id="getComparisonInsightsButton"
+                  class="px-6 py-2 gemini-button font-semibold rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-50 shadow-md flex items-center justify-center mb-4"
+              >
+                  <span id="getComparisonInsightsButtonText">Get Comparison Insights ✨</span>
+                  <span id="getComparisonInsightsLoadingContent" class="hidden flex items-center">
+                      <span class="loading-spinner"></span>
+                      <span class="ml-2">Generating insights...</span>
+                  </span>
+              </button>
+              <div id="comparisonInsightsOutput" class="text-gray-700 prose max-w-none">
+                  <p class="text-gray-500">Click the button to get AI-powered insights on your progress.</p>
+              </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <script>
+      // Global API Key
+      let geminiApiKey = localStorage.getItem('geminiApiKey') || '';
+
+      // --- Data Model (Pub/Sub Pattern) ---
+      class DataStore {
+        constructor(initialEntriesTemplate) {
+          this._subscribers = {
+            'dataUpdated': [],
+            'categoryFilterUpdated': [],
+            'reportsUpdated': []
+          };
+
+          this._allReports = this.loadFromLocalStorage() || [];
+          this._activeReportId = localStorage.getItem('activeLifeAreaReportId');
+          
+          if (this._allReports.length > 0) {
+            const foundActiveReport = this._allReports.find(r => r.id === this._activeReportId);
+            if (!foundActiveReport) {
+                this._activeReportId = this._allReports.length > 0 ? this._allReports[0].id : null;
+                this.saveToLocalStorage();
+            }
+            this.loadReport(this._activeReportId);
+          } else {
+            this._activeReportId = null;
+            this.saveToLocalStorage();
+          }
+        }
+
+        subscribe(eventType, callback) {
+          if (this._subscribers[eventType]) {
+            this._subscribers[eventType].push(callback);
+          }
+        }
+
+        publish(eventType, payload = null) {
+          if (this._subscribers[eventType]) {
+            this._subscribers[eventType].forEach(callback => callback(payload));
+          }
+        }
+
+        generateUniqueId() {
+          return 'report_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        }
+
+        createDefaultEntries(templateEntries) {
+            return templateEntries.map(entry => ({
+                id: entry.id,
+                description: entry.description,
+                fullDescription: entry.fullDescription,
+                importance: '',
+                satisfaction: '',
+                time: '',
+                notes: ''
+            }));
+        }
+
+        addReport() {
+            const now = new Date();
+            const reportName = `${now.getFullYear()}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            const newReport = {
+                id: this.generateUniqueId(),
+                name: reportName,
+                timestamp: now.toISOString(),
+                entries: this.createDefaultEntries(initialEntriesTemplate)
+            };
+            this._allReports.push(newReport);
+            this._allReports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Keep reports sorted
+            this._activeReportId = newReport.id;
+            this.saveToLocalStorage();
+            this.publish('reportsUpdated');
+            this.publish('dataUpdated');
+            return newReport;
+        }
+
+        loadReport(reportId) {
+            const report = this._allReports.find(r => r.id === reportId);
+            if (report) {
+                this._activeReportId = reportId;
+                this.saveToLocalStorage();
+                this.publish('reportsUpdated');
+                this.publish('dataUpdated');
+            }
+        }
+
+        deleteReport(reportIdToDelete) {
+            const initialReportCount = this._allReports.length;
+            this._allReports = this._allReports.filter(report => report.id !== reportIdToDelete);
+            
+            if (initialReportCount === this._allReports.length) {
+                return;
+            }
+
+            if (this._activeReportId === reportIdToDelete) {
+                this._activeReportId = this._allReports.length > 0 ? this._allReports[0].id : null;
+            }
+            this.saveToLocalStorage();
+            this.publish('reportsUpdated');
+            this.publish('dataUpdated');
+        }
+
+        getActiveReport() {
+            return this._allReports.find(r => r.id === this._activeReportId);
+        }
+
+        getAllReports() {
+            return this._allReports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        }
+
+        updateActiveReportEntryField(entryId, field, value) {
+            const activeReport = this.getActiveReport();
+            if (activeReport) {
+                const entry = activeReport.entries.find(e => e.id === entryId);
+                if (entry) {
+                    if (['importance', 'satisfaction', 'time'].includes(field)) {
+                        let numValue = parseInt(value);
+                        if (isNaN(numValue) || numValue < 0) {
+                            numValue = 0;
+                        } else if (numValue > 10) {
+                            numValue = 10;
+                        }
+                        entry[field] = numValue.toString();
+                    } else {
+                        entry[field] = value;
+                    }
+                    this.saveToLocalStorage();
+                    this.publish('dataUpdated');
+                }
+            }
+        }
+        
+        updateActiveReportEntries(updatedEntriesData) {
+            const activeReport = this.getActiveReport();
+            if (activeReport) {
+                updatedEntriesData.forEach(updatedEntry => {
+                    const entryToUpdate = activeReport.entries.find(e => e.id === updatedEntry.id);
+                    if (entryToUpdate) {
+                        entryToUpdate.importance = Math.max(0, Math.min(10, parseInt(updatedEntry.importance || '0'))).toString();
+                        entryToUpdate.satisfaction = Math.max(0, Math.min(10, parseInt(updatedEntry.satisfaction || '0'))).toString();
+                        entryToUpdate.time = Math.max(0, Math.min(10, parseInt(updatedEntry.time || '0'))).toString();
+                    }
+                });
+                this.saveToLocalStorage();
+                this.publish('dataUpdated');
+            }
+        }
+
+
+        setAllReports(newAllReports) {
+            this._allReports = newAllReports;
+            if (this._allReports.length > 0 && !this._allReports.some(r => r.id === this._activeReportId)) {
+                this._activeReportId = this._allReports[0].id;
+            } else if (this._allReports.length === 0) {
+                this._activeReportId = null;
+            }
+            this.saveToLocalStorage();
+            this.publish('reportsUpdated');
+            this.publish('dataUpdated');
+        }
+
+        saveToLocalStorage() {
+            localStorage.setItem('lifeAreaReports', JSON.stringify(this._allReports));
+            localStorage.setItem('activeLifeAreaReportId', this._activeReportId);
+        }
+
+        loadFromLocalStorage() {
+            const reportsJson = localStorage.getItem('lifeAreaReports');
+            const activeId = localStorage.getItem('activeLifeAreaReportId');
+            if (reportsJson) {
+                try {
+                    const loadedReports = JSON.parse(reportsJson);
+                    this._activeReportId = activeId;
+                    return loadedReports;
+                } catch (e) {
+                    console.error("Failed to parse reports from localStorage", e);
+                    return null;
+                }
+            }
+            return null;
+        }
+      }
+
+      // --- Global Data Initialization ---
+      const initialEntriesTemplate = [
+        { id: "R1", description: "Significant Other", fullDescription: "This category covers your romantic relationships and partnerships." },
+        { id: "R2", description: "Family", fullDescription: "Focuses on your relationships with immediate and extended family members." },
+        { id: "R3", description: "Friendship", fullDescription: "Pertains to your social connections and friendships outside of family and romantic partners." },
+        { id: "B1", description: "Physical Health / Sports", fullDescription: "Relates to your physical well-being, exercise, nutrition, and overall bodily health." },
+        { id: "B2", description: "Mental Health", fullDescription: "Covers your emotional and psychological well-being, stress management, and inner peace." },
+        { id: "B3", description: "Spirituality", fullDescription: "Explores your sense of purpose, values, beliefs, and connection to something greater than yourself." },
+        { id: "C1", description: "Community", fullDescription: "Reflects your engagement and contribution to your local community or broader groups." },
+        { id: "C2", description: "Social Engagement", fullDescription: "Concerns your active participation in social causes, volunteering, or collective efforts." },
+        { id: "J1", description: "Job / Career", fullDescription: "Encompasses your professional life, career development, and job satisfaction." },
+        { id: "J2", description: "Education / Learning", fullDescription: "Focuses on your continuous learning, skill development, and intellectual growth." },
+        { id: "J3", description: "Finances", fullDescription: "Deals with your financial stability, management of resources, and future financial planning." },
+        { id: "I1", description: "Hobbies", fullDescription: "Refers to your personal interests, creative pursuits, and recreational activities." },
+        { id: "I2", description: "Online Entertainment", fullDescription: "Covers time spent on digital entertainment, social media, gaming, and online content." },
+        { id: "I3", description: "Offline Entertainment", fullDescription: "Includes leisure activities like reading, movies, concerts, and other non-digital forms of entertainment." },
+        { id: "P1", description: "Physiological Needs", fullDescription: "Basic biological needs like sleep quality, hydration, proper nutrition, and hygiene." },
+        { id: "P2", description: "Activities of Daily Living", fullDescription: "Refers to the ease and effectiveness of managing daily tasks and responsibilities." }
+      ];
+
+      const dataStore = new DataStore(initialEntriesTemplate);
+
+      const categoryColors = {
+        R: { class: 'bg-red-200 text-red-800', label: 'Relationships', chartColor: 'rgba(239, 68, 68, 0.8)', chartBorderColor: 'rgba(239, 68, 68, 1)' },
+        B: { class: 'bg-blue-200 text-blue-800', label: 'Body / Health', chartColor: 'rgba(59, 130, 246, 0.8)', chartBorderColor: 'rgba(59, 130, 246, 1)' },
+        C: { class: 'bg-yellow-200 text-yellow-800', label: 'Community', chartColor: 'rgba(234, 179, 8, 0.8)', chartBorderColor: 'rgba(234, 179, 8, 1)' },
+        J: { class: 'bg-green-200 text-green-800', label: 'Job / Career', chartColor: 'rgba(34, 197, 94, 0.8)', chartBorderColor: 'rgba(34, 197, 94, 1)' },
+        I: { class: 'bg-orange-200 text-orange-800', label: 'Interests', chartColor: 'rgba(249, 115, 22, 0.8)', chartBorderColor: 'rgba(249, 115, 22, 1)' },
+        P: { class: 'bg-teal-200 text-teal-800', label: 'Physiological', chartColor: 'rgba(20, 184, 166, 0.8)', chartBorderColor: 'rgba(20, 184, 166, 1)' }
+      };
+
+      const selectedCategories = new Set(Object.keys(categoryColors));
+      const selectedComparisonCategories = new Set(Object.keys(categoryColors));
+
+
+      // --- DOM Elements ---
+      const formRowsContainer = document.getElementById('formRows');
+      const categoryFilterContainer = document.getElementById('categoryFilter');
+      const insightsSection = document.getElementById('insightsSection');
+      const insightsOutput = document.getElementById('insightsOutput');
+      const getInsightsLoadingContent = document.getElementById('getInsightsLoadingContent');
+      const getInsightsLoadingText = document.getElementById('getInsightsLoadingText');
+      const getInsightsButton = document.getElementById('getInsightsButton');
+      const getInsightsButtonText = document.getElementById('getInsightsButtonText');
+      const exportDataButton = document.getElementById('exportDataButton');
+      const importFile = document.getElementById('importFile');
+      const fillRandomButton = document.getElementById('fillRandomButton');
+      const reportSelector = document.getElementById('reportSelector');
+      const createNewReportButton = document.getElementById('createNewReportButton');
+      const deleteReportButton = document.getElementById('deleteReportButton');
+      
+      const settingsButton = document.getElementById('settingsButton');
+      const settingsModal = document.getElementById('settingsModal');
+      const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+      const saveSettingsButton = document.getElementById('saveSettingsButton');
+      const cancelSettingsButton = document.getElementById('cancelSettingsButton');
+
+      const confirmationModal = document.getElementById('confirmationModal');
+      const confirmationMessage = document.getElementById('confirmationMessage');
+      const confirmYesButton = document.getElementById('confirmYes');
+      const confirmNoButton = document.getElementById('confirmNo');
+      let pendingActionData = null;
+
+      // --- Comparison Modal Elements ---
+      const compareReportsButton = document.getElementById('compareReportsButton');
+      const comparisonModal = document.getElementById('comparisonModal');
+      const closeComparisonModalButton = document.getElementById('closeComparisonModalButton');
+      const comparisonReportASelect = document.getElementById('comparisonReportA');
+      const comparisonReportBSelect = document.getElementById('comparisonReportB');
+      const comparisonCategoryFilterContainer = document.getElementById('comparisonCategoryFilter');
+      const comparisonResultContainer = document.getElementById('comparisonResultContainer');
+      const comparisonInsightsSection = document.getElementById('comparisonInsightsSection');
+      const getComparisonInsightsButton = document.getElementById('getComparisonInsightsButton');
+      const getComparisonInsightsButtonText = document.getElementById('getComparisonInsightsButtonText');
+      const getComparisonInsightsLoadingContent = document.getElementById('getComparisonInsightsLoadingContent');
+      const comparisonInsightsOutput = document.getElementById('comparisonInsightsOutput');
+
+
+      // --- Rendering Functions ---
+      function renderReportsList() {
+        const allReports = dataStore.getAllReports();
+        reportSelector.innerHTML = '';
+
+        if (allReports.length === 0) {
+            reportSelector.innerHTML = '<option value="">No Reports</option>';
+            renderTableRows();
+            renderChart();
+            setInsightsButtonState();
+            return;
+        }
+
+        allReports.forEach(report => {
+            const option = document.createElement('option');
+            option.value = report.id;
+            option.textContent = report.name;
+            if (report.id === dataStore._activeReportId) {
+                option.selected = true;
+            }
+            reportSelector.appendChild(option);
+        });
+        
+        setInsightsButtonState();
+        renderTableRows();
+        renderChart();
+      }
+
+      function setInsightsButtonState() {
+          const hasActiveReport = dataStore.getActiveReport() !== undefined && dataStore.getActiveReport() !== null;
+          const hasApiKey = geminiApiKey && geminiApiKey.trim() !== '';
+
+          if (hasActiveReport && hasApiKey) {
+              getInsightsButton.removeAttribute('disabled');
+              getInsightsButton.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+              insightsSection.classList.remove('hidden');
+          } else {
+              getInsightsButton.setAttribute('disabled', 'true');
+              getInsightsButton.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+              insightsSection.classList.add('hidden');
+          }
+      }
+
+      function renderCategoryFilters() {
+        categoryFilterContainer.innerHTML = '';
+        Object.entries(categoryColors).forEach(([prefix, data]) => {
+          const span = document.createElement('span');
+          span.className = `${data.class} px-3 py-1 rounded-full shadow-sm flex items-center gap-2 cursor-pointer`;
+          span.innerHTML = `
+            <input type="checkbox" id="filter-${prefix}" value="${prefix}" class="form-checkbox h-4 w-4 text-blue-600 rounded" ${selectedCategories.has(prefix) ? 'checked' : ''}>
+            <label for="filter-${prefix}" class="cursor-pointer">${prefix} - ${data.label}</label>
+          `;
+          categoryFilterContainer.appendChild(span);
+
+          span.querySelector(`#filter-${prefix}`).addEventListener('change', (event) => {
+            if (event.target.checked) {
+              selectedCategories.add(prefix);
+            } else {
+              selectedCategories.delete(prefix);
+            }
+            dataStore.publish('categoryFilterUpdated');
+          });
+        });
+      }
+
+      function renderTableRows() {
+        formRowsContainer.innerHTML = '';
+        const activeReport = dataStore.getActiveReport();
+
+        if (!activeReport) {
+            formRowsContainer.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Please create or select a report.</td></tr>';
+            return;
+        }
+
+        activeReport.entries.forEach((entry) => {
+          const prefix = entry.id.charAt(0);
+          const bgClass = categoryColors[prefix] ? categoryColors[prefix].class.replace('200', '100').replace('800', '700') : 'bg-white';
+
+          const row = document.createElement('tr');
+          row.className = `${bgClass} border-b border-gray-200 hover:bg-gray-50`;
+          row.setAttribute('data-category', prefix);
+          row.setAttribute('data-id', entry.id);
+          row.innerHTML = `
+            <td class="px-4 py-2 border-r border-gray-200 text-gray-800 font-medium">${entry.id}</td>
+            <td class="px-4 py-2 border-r border-gray-200 text-gray-700" title="${entry.fullDescription || ''}">${entry.description}</td>
+            <td class="px-4 py-2 border-r border-gray-200"><input class="w-20 border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 text-center" type="number" name="importance-${entry.id}" min="0" max="10" required value="${entry.importance}"></td>
+            <td class="px-4 py-2 border-r border-gray-200"><input class="w-20 border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 text-center" type="number" name="satisfaction-${entry.id}" min="0" max="10" required value="${entry.satisfaction}"></td>
+            <td class="px-4 py-2 border-r border-gray-200"><input class="w-20 border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 text-center" type="number" name="time-${entry.id}" min="0" max="10" required value="${entry.time}"></td>
+            <td class="px-4 py-2"><input class="w-full border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-700" type="text" name="notes-${entry.id}" placeholder="Add notes..." value="${entry.notes}"></td>
+          `;
+          formRowsContainer.appendChild(row);
+
+          const importanceInput = row.querySelector(`[name='importance-${entry.id}']`);
+          const satisfactionInput = row.querySelector(`[name='satisfaction-${entry.id}']`);
+          const timeInput = row.querySelector(`[name='time-${entry.id}']`);
+          const notesInput = row.querySelector(`[name='notes-${entry.id}']`);
+
+          importanceInput.addEventListener('input', (e) => {
+            let value = parseInt(e.target.value);
+            if (isNaN(value) || value < 0) value = 0;
+            if (value > 10) value = 10;
+            e.target.value = value;
+            dataStore.updateActiveReportEntryField(entry.id, 'importance', value.toString());
+          });
+          satisfactionInput.addEventListener('input', (e) => {
+            let value = parseInt(e.target.value);
+            if (isNaN(value) || value < 0) value = 0;
+            if (value > 10) value = 10;
+            e.target.value = value;
+            dataStore.updateActiveReportEntryField(entry.id, 'satisfaction', value.toString());
+          });
+          timeInput.addEventListener('input', (e) => {
+            let value = parseInt(e.target.value);
+            if (isNaN(value) || value < 0) value = 0;
+            if (value > 10) value = 10;
+            e.target.value = value;
+            dataStore.updateActiveReportEntryField(entry.id, 'time', value.toString());
+          });
+          notesInput.addEventListener('input', (e) => dataStore.updateActiveReportEntryField(entry.id, 'notes', e.target.value));
+
+          if (!selectedCategories.has(prefix)) {
+            row.style.display = 'none';
+          }
+        });
+      }
+
+      function renderChart() {
+        const activeReport = dataStore.getActiveReport();
+        const currentEntries = activeReport ? activeReport.entries : [];
+
+        const filteredEntries = currentEntries.filter(entry => selectedCategories.has(entry.id.charAt(0)));
+
+        const dataPoints = filteredEntries.map((entry) => {
+          const importance = +entry.importance;
+          const satisfaction = +entry.satisfaction;
+          const time = +entry.time;
+          
+          if (isNaN(importance) || isNaN(satisfaction) || isNaN(time) || entry.importance === '' || entry.satisfaction === '' || entry.time === '') {
+            return null;
+          }
+
+          const prefix = entry.id.charAt(0);
+          return {
+            x: satisfaction,
+            y: importance,
+            id: entry.id,
+            description: entry.description,
+            time,
+            color: categoryColors[prefix] ? categoryColors[prefix].chartColor : 'rgba(100, 100, 100, 0.8)',
+            borderColor: categoryColors[prefix] ? categoryColors[prefix].chartBorderColor : 'rgba(100, 100, 100, 1)'
+          };
+        }).filter(p => p !== null);
+
+        const maxTime = dataPoints.length > 0 ? Math.max(...dataPoints.map(p => p.time)) : 0;
+        const minTime = dataPoints.length > 0 ? Math.min(...dataPoints.map(p => p.time)) : 0;
+        const minRadius = 8, maxRadius = 25;
+
+        const scaleRadius = time => {
+          if (maxTime === minTime && maxTime === 0) return minRadius;
+          if (maxTime === minTime) return minRadius;
+          return ((time - minTime) / (maxTime - minTime)) * (maxRadius - minRadius) + minRadius;
+        };
+
+        const chartData = dataPoints.map(p => ({
+          x: p.x,
+          y: p.y,
+          id: p.id,
+          description: p.description,
+          radius: scaleRadius(p.time),
+          backgroundColor: p.color,
+          borderColor: p.borderColor
+        }));
+
+        const ctx = document.getElementById('scatterChart').getContext('2d');
+        if (window.myChart) window.myChart.destroy();
+
+        window.myChart = new Chart(ctx, {
+          type: 'scatter',
+          data: {
+            datasets: [{
+              label: '',
+              data: chartData,
+              pointBackgroundColor: chartData.map(p => p.backgroundColor),
+              pointBorderColor: chartData.map(p => p.borderColor),
+              pointBorderWidth: 1,
+              pointRadius: chartData.map(p => p.radius),
+              hoverBackgroundColor: chartData.map(p => p.borderColor),
+              hoverBorderColor: chartData.map(p => p.backgroundColor),
+              hoverBorderWidth: 2,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                titleFont: { size: 14, weight: 'bold' },
+                bodyFont: { size: 12 },
+                padding: 10,
+                callbacks: {
+                  label: ctx => {
+                    const { id, description, x, y, radius } = ctx.raw;
+                    const calculatedMinTime = dataPoints.length > 0 ? Math.min(...dataPoints.map(p => p.time)) : 0;
+                    const calculatedMaxTime = dataPoints.length > 0 ? Math.max(...dataPoints.map(p => p.time)) : 0;
+                    let time = 0;
+                    if (calculatedMaxTime === calculatedMinTime) {
+                        time = calculatedMinTime;
+                    } else {
+                        time = ((radius - minRadius) / (maxRadius - minRadius)) * (calculatedMaxTime - calculatedMinTime) + calculatedMinTime;
+                    }
+                    
+                    let tooltipText = `${id}: ${description} (Satisfaction: ${x}, Importance: ${y}, Time Spent: ${Math.round(time)})`;
+                    return tooltipText;
+                  }
+                }
+              },
+              datalabels: {
+                align: 'end',
+                formatter: d => d.id,
+                font: { size: 11, weight: 'bold' },
+                color: '#333',
+                offset: 5,
+                display: true
+              }
+            },
+            scales: {
+              x: {
+                title: { display: true, text: 'Satisfaction (0-10)', font: { size: 14, weight: 'bold' }, color: '#555' },
+                min: 0,
+                max: 10,
+                ticks: { stepSize: 1, font: { size: 12 } },
+                grid: { borderColor: '#ddd' },
+                padding: { top: 10, bottom: 0, left: 0, right: 0 }
+              },
+              y: {
+                title: { display: true, text: 'Importance (0-10)', font: { size: 14, weight: 'bold' }, color: '#555' },
+                min: 0,
+                max: 10,
+                ticks: { stepSize: 1, font: { size: 12 } },
+                grid: { borderColor: '#ddd' },
+                padding: { left: 0, right: 20, top: 0, bottom: 0 }
+              }
+            }
+          },
+          plugins: [ChartDataLabels]
+        });
+      }
+      
+      // --- Comparison Modal Functions ---
+      function renderComparisonCategoryFilters() {
+        comparisonCategoryFilterContainer.innerHTML = '';
+        Object.keys(categoryColors).forEach(prefix => selectedComparisonCategories.add(prefix)); // Reset filters
+
+        Object.entries(categoryColors).forEach(([prefix, data]) => {
+          const span = document.createElement('span');
+          span.className = `${data.class} px-3 py-1 rounded-full shadow-sm flex items-center gap-2 cursor-pointer`;
+          span.innerHTML = `
+            <input type="checkbox" id="compare-filter-${prefix}" value="${prefix}" class="form-checkbox h-4 w-4 text-blue-600 rounded" ${selectedComparisonCategories.has(prefix) ? 'checked' : ''}>
+            <label for="compare-filter-${prefix}" class="cursor-pointer">${prefix} - ${data.label}</label>
+          `;
+          comparisonCategoryFilterContainer.appendChild(span);
+
+          span.querySelector(`#compare-filter-${prefix}`).addEventListener('change', (event) => {
+            if (event.target.checked) {
+              selectedComparisonCategories.add(prefix);
+            } else {
+              selectedComparisonCategories.delete(prefix);
+            }
+            performComparison(); // Re-render table on filter change
+          });
+        });
+      }
+      
+      function openCompareModal() {
+        const allReports = dataStore.getAllReports();
+        comparisonReportASelect.innerHTML = '';
+        comparisonReportBSelect.innerHTML = '';
+
+        renderComparisonCategoryFilters();
+
+        if (allReports.length < 2) {
+            comparisonResultContainer.innerHTML = '<p class="text-gray-500 p-4">You need at least two reports to run a comparison.</p>';
+            comparisonInsightsSection.classList.add('hidden');
+        } else {
+            comparisonResultContainer.innerHTML = '<p class="text-gray-500 p-4">Please select two reports to start the comparison.</p>';
+            comparisonInsightsSection.classList.remove('hidden');
+        }
+
+        allReports.forEach(report => {
+            const option = document.createElement('option');
+            option.value = report.id;
+            option.textContent = report.name;
+            comparisonReportASelect.appendChild(option.cloneNode(true));
+            comparisonReportBSelect.appendChild(option.cloneNode(true));
+        });
+
+        if (allReports.length >= 2) {
+            comparisonReportASelect.selectedIndex = 1;
+            comparisonReportBSelect.selectedIndex = 0;
+        }
+        
+        performComparison();
+        comparisonModal.classList.remove('hidden');
+      }
+
+      function closeCompareModal() {
+        comparisonModal.classList.add('hidden');
+        comparisonInsightsOutput.innerHTML = `<p class="text-gray-500">Click the button to get AI-powered insights on your progress.</p>`;
+      }
+      
+      function setComparisonInsightsButtonState() {
+          const reportIdA = comparisonReportASelect.value;
+          const reportIdB = comparisonReportBSelect.value;
+          const hasApiKey = geminiApiKey && geminiApiKey.trim() !== '';
+          const areReportsValid = reportIdA && reportIdB && reportIdA !== reportIdB;
+
+          if (hasApiKey && areReportsValid) {
+              getComparisonInsightsButton.removeAttribute('disabled');
+              getComparisonInsightsButton.classList.remove('opacity-50', 'cursor-not-allowed');
+              comparisonInsightsSection.classList.remove('hidden');
+          } else {
+              getComparisonInsightsButton.setAttribute('disabled', 'true');
+              getComparisonInsightsButton.classList.add('opacity-50', 'cursor-not-allowed');
+              if (!hasApiKey) {
+                comparisonInsightsSection.classList.add('hidden');
+              }
+          }
+      }
+
+      function performComparison() {
+        const reportIdA = comparisonReportASelect.value;
+        const reportIdB = comparisonReportBSelect.value;
+        setComparisonInsightsButtonState();
+
+        if (!reportIdA || !reportIdB) {
+            comparisonResultContainer.innerHTML = '<p class="text-gray-500 p-4">Please select two reports.</p>';
+            return;
+        }
+
+        if (reportIdA === reportIdB) {
+            comparisonResultContainer.innerHTML = '<p class="text-yellow-600 p-4">Please select two different reports for comparison.</p>';
+            return;
+        }
+
+        const allReports = dataStore.getAllReports();
+        const reportA = allReports.find(r => r.id === reportIdA);
+        const reportB = allReports.find(r => r.id === reportIdB);
+
+        const results = reportA.entries.map(entryA => {
+            const entryB = reportB.entries.find(e => e.id === entryA.id);
+            return {
+                id: entryA.id,
+                description: entryA.description,
+                importanceA: entryA.importance,
+                importanceB: entryB ? entryB.importance : 'N/A',
+                satisfactionA: entryA.satisfaction,
+                satisfactionB: entryB ? entryB.satisfaction : 'N/A',
+                timeA: entryA.time,
+                timeB: entryB ? entryB.time : 'N/A',
+            };
+        });
+
+        renderComparisonResults(results);
+      }
+      
+      /**
+       * Returns an HTML span with an icon indicating the change between two values.
+       * Uses a 5-level system for more nuanced feedback.
+       */
+      function getChangeIndicator(valA, valB) {
+          const numA = parseInt(valA, 10);
+          const numB = parseInt(valB, 10);
+
+          if (isNaN(numA) || isNaN(numB)) {
+              return `<span class="text-gray-400">-</span>`;
+          }
+
+          const delta = numB - numA;
+          const deltaText = delta > 0 ? `+${delta}` : delta;
+
+          if (delta > 6) {
+              // Very strong Increase
+              return `<span class="flex items-center justify-center text-green-700 font-bold" title="Very Strong Increase (${deltaText})"><span class="material-symbols-outlined">stat_3</span></span>`;
+          } else if (delta > 3) {
+              // Strong Increase
+              return `<span class="flex items-center justify-center text-green-500 font-bold" title="Strong Increase (${deltaText})"><span class="material-symbols-outlined">stat_2</span></span>`;
+          } else if (delta > 0) {
+              // Slight Increase
+              return `<span class="flex items-center justify-center text-green-300 font-bold" title="Slight Increase (${deltaText})"><span class="material-symbols-outlined">stat_1</span></span>`;
+          } else if (delta === 0) {
+              // No change
+              return `<span class="flex items-center justify-center text-gray-500 font-bold" title="No Change"><span class="material-symbols-outlined">stat_0</span></span>`;
+          } else if (delta > -3) {
+              // Slight Decrease
+              return `<span class="flex items-center justify-center text-red-300 font-bold" title="Slight Decrease (${deltaText})"><span class="material-symbols-outlined">stat_minus_1</span></span>`;
+          } else if (delta > -6) {
+              // Strong Decrease
+              return `<span class="flex items-center justify-center text-red-500 font-bold" title="Strong Decrease (${deltaText})"><span class="material-symbols-outlined">stat_minus_2</span></span>`;
+          } else {
+              // Very Strong Decrease
+              return `<span class="flex items-center justify-center text-red-700 font-bold" title="Very Strong Decrease (${deltaText})"><span class="material-symbols-outlined">stat_minus_3</span></span>`;
+          }
+      }
+
+      function renderComparisonResults(results) {
+        let tableHtml = `
+          <div class="border border-gray-300 rounded-lg shadow-sm overflow-x-auto mt-4">
+            <table class="min-w-full table-auto bg-white text-sm">
+                <thead>
+                    <tr class="text-center bg-gray-200 text-gray-700 uppercase text-xs tracking-wider">
+                        <th rowspan="2" class="px-2 py-2 border-gray-300 text-left align-bottom">ID</th>
+                        <th rowspan="2" class="px-2 py-2 border-gray-300 text-left align-bottom">Area</th>
+                        <th colspan="3" class="px-2 py-2 border-l-2 border-gray-400">Importance</th>
+                        <th colspan="3" class="px-2 py-2 border-l-2 border-gray-400">Satisfaction</th>
+                        <th colspan="3" class="px-2 py-2 border-l-2 border-gray-400">Time</th>
+                    </tr>
+                    <tr class="text-center text-gray-600 bg-gray-100 text-xs border-b-2 border-gray-300">
+                        <th class="px-2 py-1 font-semibold border-l-2 border-gray-400">A</th>
+                        <th class="px-2 py-1 font-semibold border-gray-300">B</th>
+                        <th class="px-2 py-1 font-semibold border-gray-300">Δ</th>
+                        <th class="px-2 py-1 font-semibold border-l-2 border-gray-400">A</th>
+                        <th class="px-2 py-1 font-semibold border-gray-300">B</th>
+                        <th class="px-2 py-1 font-semibold border-gray-300">Δ</th>
+                        <th class="px-2 py-1 font-semibold border-l-2 border-gray-400">A</th>
+                        <th class="px-2 py-1 font-semibold border-gray-300">B</th>
+                        <th class="px-2 py-1 font-semibold border-gray-300">Δ</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        const filteredResults = results.filter(item => selectedComparisonCategories.has(item.id.charAt(0)));
+
+        filteredResults.forEach(item => {
+            const prefix = item.id.charAt(0);
+            const category = categoryColors[prefix];
+            const bgClass = category ? category.class.replace('200', '100').replace('800', '700') : 'bg-white';
+            tableHtml += `
+                <tr class="border-b border-gray-200 ${bgClass} hover:bg-gray-50">
+                    <td class="px-2 py-2 border-r border-gray-200 font-medium text-gray-800">${item.id}</td>
+                    <td class="px-2 py-2 border-r-2 border-gray-400 font-medium text-gray-700">${item.description}</td>
+                    <td class="px-2 py-2 border-r border-gray-200 text-center">${item.importanceA || '-'}</td>
+                    <td class="px-2 py-2 border-r border-gray-200 text-center">${item.importanceB || '-'}</td>
+                    <td class="px-2 py-2 border-r-2 border-gray-400 text-center">${getChangeIndicator(item.importanceA, item.importanceB)}</td>
+                    <td class="px-2 py-2 border-r border-gray-200 text-center">${item.satisfactionA || '-'}</td>
+                    <td class="px-2 py-2 border-r border-gray-200 text-center">${item.satisfactionB || '-'}</td>
+                    <td class="px-2 py-2 border-r-2 border-gray-400 text-center">${getChangeIndicator(item.satisfactionA, item.satisfactionB)}</td>
+                    <td class="px-2 py-2 border-r border-gray-200 text-center">${item.timeA || '-'}</td>
+                    <td class="px-2 py-2 border-r border-gray-200 text-center">${item.timeB || '-'}</td>
+                    <td class="px-2 py-2 text-center">${getChangeIndicator(item.timeA, item.timeB)}</td>
+                </tr>
+            `;
+        });
+        tableHtml += `</tbody></table></div>`;
+        comparisonResultContainer.innerHTML = tableHtml;
+      }
+
+
+      // --- Event Listeners and Initial Setup ---
+      dataStore.subscribe('dataUpdated', renderTableRows);
+      dataStore.subscribe('dataUpdated', renderChart);
+      dataStore.subscribe('categoryFilterUpdated', renderTableRows);
+      dataStore.subscribe('categoryFilterUpdated', renderChart);
+      dataStore.subscribe('reportsUpdated', renderReportsList);
+
+      reportSelector.addEventListener('change', (event) => {
+          dataStore.loadReport(event.target.value);
+          setInsightsButtonState();
+      });
+
+      createNewReportButton.addEventListener('click', () => {
+          dataStore.addReport();
+      });
+
+      deleteReportButton.addEventListener('click', () => {
+          const activeReport = dataStore.getActiveReport();
+          if (!activeReport) {
+              confirmationMessage.textContent = 'No active report selected. Please create or select a report first.';
+              confirmYesButton.classList.add('hidden');
+              confirmNoButton.textContent = 'OK';
+              confirmationModal.classList.remove('hidden');
+              pendingActionData = null;
+              return;
+          }
+
+          confirmationMessage.textContent = `Are you sure you want to delete the report "${activeReport.name}"? This action cannot be undone.`;
+          confirmYesButton.classList.remove('hidden');
+          confirmNoButton.textContent = 'No';
+          confirmationModal.classList.remove('hidden');
+          pendingActionData = { type: 'deleteReport', reportId: activeReport.id };
+      });
+
+      confirmYesButton.addEventListener('click', () => {
+          if (pendingActionData) {
+              if (pendingActionData.type === 'deleteReport') {
+                  dataStore.deleteReport(pendingActionData.reportId);
+              } else if (pendingActionData.type === 'fillRandom') {
+                  performFillRandom();
+              }
+          }
+          confirmationModal.classList.add('hidden');
+          pendingActionData = null;
+      });
+
+      confirmNoButton.addEventListener('click', () => {
+          confirmationModal.classList.add('hidden');
+          pendingActionData = null;
+      });
+
+      fillRandomButton.addEventListener('click', () => {
+        const activeReport = dataStore.getActiveReport();
+        if (!activeReport) {
+            confirmationMessage.textContent = 'Please create or select a report first to fill with random values.';
+            confirmYesButton.classList.add('hidden');
+            confirmNoButton.textContent = 'OK';
+            confirmationModal.classList.remove('hidden');
+            pendingActionData = null;
+            return;
+        }
+
+        const hasExistingData = activeReport.entries.some(entry =>
+            entry.importance !== '' || entry.satisfaction !== '' || entry.time !== ''
+        );
+
+        if (hasExistingData) {
+            confirmationMessage.textContent = `Are you sure you want to overwrite the data in report "${activeReport.name}" with random values? This action cannot be undone.`;
+            confirmYesButton.classList.remove('hidden');
+            confirmNoButton.textContent = 'No';
+            confirmationModal.classList.remove('hidden');
+            pendingActionData = { type: 'fillRandom' };
+        } else {
+            performFillRandom();
+        }
+      });
+
+      function performFillRandom() {
+          const activeReport = dataStore.getActiveReport();
+          if (activeReport) {
+              activeReport.entries = activeReport.entries.map(entry => ({
+                  ...entry,
+                  importance: Math.floor(Math.random() * 11).toString(),
+                  satisfaction: Math.floor(Math.random() * 11).toString(),
+                  time: Math.floor(Math.random() * 11).toString()
+              }));
+              
+              dataStore.saveToLocalStorage();
+              dataStore.publish('dataUpdated');
+          }
+      }
+
+      exportDataButton.addEventListener('click', () => {
+        const allReports = dataStore.getAllReports();
+        const jsonString = JSON.stringify(allReports, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'life_area_all_reports.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+
+      importFile.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const importedData = JSON.parse(e.target.result);
+            if (!Array.isArray(importedData)) {
+              throw new Error('The file does not contain a valid array of reports.');
+            }
+
+            const isValidImport = importedData.every(report =>
+                report.id && report.name && Array.isArray(report.entries) &&
+                report.entries.every(entry => entry.id && entry.description && entry.fullDescription !== undefined)
+            );
+
+            if (!isValidImport) {
+                throw new Error('Invalid import file structure.');
+            }
+
+            dataStore.setAllReports(importedData);
+            confirmationMessage.textContent = 'Data imported successfully!';
+            confirmYesButton.classList.add('hidden');
+            confirmNoButton.textContent = 'OK';
+            confirmationModal.classList.remove('hidden');
+            pendingActionData = null;
+
+          } catch (error) {
+            console.error('Error parsing imported file:', error);
+            confirmationMessage.textContent = `Error importing data: ${error.message}. Please ensure it is a valid JSON file.`;
+            confirmYesButton.classList.add('hidden');
+            confirmNoButton.textContent = 'OK';
+            confirmationModal.classList.remove('hidden');
+            pendingActionData = null;
+          }
+        };
+        reader.readAsText(file);
+      });
+
+
+      getInsightsButton.addEventListener('click', async () => {
+        insightsOutput.innerHTML = '';
+        getInsightsButtonText.classList.add('hidden');
+        getInsightsLoadingContent.classList.remove('hidden');
+        getInsightsLoadingText.textContent = 'Generating insights...';
+        setInsightsButtonState();
+
+        const activeReport = dataStore.getActiveReport();
+        if (!activeReport) {
+            insightsOutput.innerHTML = '<p class="text-gray-500">No active report selected to generate insights for.</p>';
+            getInsightsButtonText.classList.remove('hidden');
+            getInsightsLoadingContent.classList.add('hidden');
+            setInsightsButtonState();
+            return;
+        }
+
+        let chatHistory = [];
+        let prompt = `Analyze the following data for a life area report named "${activeReport.name}". For each area, importance (0-10), satisfaction (0-10), time spent (0-10), and personal notes were rated. Provide personalized insights and practical advice on how to improve balance, especially for areas with high importance but low satisfaction, or where little time is dedicated despite high importance. Take the notes into account for better context. Format the response in Markdown. Please respond in English.\n\nReport Data:\n`;
+
+        activeReport.entries.forEach(entry => {
+          const importance = entry.importance !== '' ? entry.importance : 'N/A';
+          const satisfaction = entry.satisfaction !== '' ? entry.satisfaction : 'N/A';
+          const time = entry.time !== '' ? entry.time : 'N/A';
+          const notes = entry.notes !== '' ? entry.notes : 'No notes provided';
+          const fullDescription = entry.fullDescription || 'No detailed description.';
+          prompt += `- ${entry.id} (${entry.description} - ${fullDescription}): Importance: ${importance}, Satisfaction: ${satisfaction}, Time Spent: ${time}, Notes: "${notes}"\n`;
+        });
+
+        chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+        const payload = { contents: chatHistory };
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+        try {
+          const response = await fetch(apiUrl, {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify(payload)
+                 });
+          const result = await response.json();
+
+          if (result.candidates && result.candidates.length > 0 &&
+              result.candidates[0].content && result.candidates[0].content.parts &&
+              result.candidates[0].content.parts.length > 0) {
+            const text = result.candidates[0].content.parts[0].text;
+            insightsOutput.innerHTML = marked.parse(text);
+          } else {
+            insightsOutput.innerHTML = '<p class="text-red-500">Error: No insights received from the model.</p>';
+            console.error('Unexpected API response structure:', result);
+          }
+        } catch (error) {
+          insightsOutput.innerHTML = `<p class="text-red-500">Error fetching insights: ${error.message}</p>`;
+          console.error('Error fetching insights:', error);
+        } finally {
+          getInsightsButtonText.classList.remove('hidden');
+          getInsightsLoadingContent.classList.add('hidden');
+          setInsightsButtonState();
+        }
+      });
+
+      settingsButton.addEventListener('click', () => {
+        geminiApiKeyInput.value = geminiApiKey;
+        settingsModal.classList.remove('hidden');
+      });
+
+      saveSettingsButton.addEventListener('click', () => {
+        geminiApiKey = geminiApiKeyInput.value.trim();
+        localStorage.setItem('geminiApiKey', geminiApiKey);
+        settingsModal.classList.add('hidden');
+        setInsightsButtonState();
+        setComparisonInsightsButtonState();
+      });
+
+      cancelSettingsButton.addEventListener('click', () => {
+        settingsModal.classList.add('hidden');
+      });
+
+      // --- Comparison Modal Event Listeners ---
+      compareReportsButton.addEventListener('click', openCompareModal);
+      closeComparisonModalButton.addEventListener('click', closeCompareModal);
+      comparisonReportASelect.addEventListener('change', performComparison);
+      comparisonReportBSelect.addEventListener('change', performComparison);
+
+      getComparisonInsightsButton.addEventListener('click', async () => {
+          comparisonInsightsOutput.innerHTML = '';
+          getComparisonInsightsButtonText.classList.add('hidden');
+          getComparisonInsightsLoadingContent.classList.remove('hidden');
+          getComparisonInsightsButton.setAttribute('disabled', 'true');
+
+          const allReports = dataStore.getAllReports();
+          const reportA = allReports.find(r => r.id === comparisonReportASelect.value);
+          const reportB = allReports.find(r => r.id === comparisonReportBSelect.value);
+
+          if (!reportA || !reportB) {
+              comparisonInsightsOutput.innerHTML = '<p class="text-red-500">Could not find the selected reports.</p>';
+              getComparisonInsightsButtonText.classList.remove('hidden');
+              getComparisonInsightsLoadingContent.classList.add('hidden');
+              getComparisonInsightsButton.removeAttribute('disabled');
+              return;
+          }
+
+          let prompt = `Analyze the change between two life area reports. Report A is named "${reportA.name}" and Report B is named "${reportB.name}". For each life area, analyze the change in Importance, Satisfaction, and Time Spent. Focus on significant positive and negative trends. What areas have improved? What areas have declined? Where has focus shifted (e.g., importance changed)? Provide actionable advice based on these trends. Format the response in Markdown. Please respond in English.\n\nHere is the data comparison:\n`;
+
+          const comparisonResults = reportA.entries
+              .filter(entryA => selectedComparisonCategories.has(entryA.id.charAt(0)))
+              .map(entryA => {
+                  const entryB = reportB.entries.find(e => e.id === entryA.id);
+                  if (!entryB) return null;
+                  return {
+                      area: `${entryA.id} (${entryA.description})`,
+                      importance: `from ${entryA.importance || 'N/A'} to ${entryB.importance || 'N/A'}`,
+                      satisfaction: `from ${entryA.satisfaction || 'N/A'} to ${entryB.satisfaction || 'N/A'}`,
+                      time: `from ${entryA.time || 'N/A'} to ${entryB.time || 'N/A'}`,
+                      notesA: entryA.notes || '',
+                      notesB: entryB.notes || ''
+                  };
+              }).filter(Boolean);
+
+          comparisonResults.forEach(result => {
+              prompt += `- ${result.area}:\n  - Importance changed ${result.importance}\n  - Satisfaction changed ${result.satisfaction}\n  - Time Spent changed ${result.time}\n`;
+              if (result.notesA) prompt += `  - Notes from Report A: "${result.notesA}"\n`;
+              if (result.notesB) prompt += `  - Notes from Report B: "${result.notesB}"\n`;
+          });
+
+          const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+          try {
+              const response = await fetch(apiUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+              });
+              const result = await response.json();
+              if (result.candidates && result.candidates[0]?.content?.parts?.[0]?.text) {
+                  const text = result.candidates[0].content.parts[0].text;
+                  comparisonInsightsOutput.innerHTML = marked.parse(text);
+              } else {
+                  comparisonInsightsOutput.innerHTML = '<p class="text-red-500">Error: No insights received from the model.</p>';
+                  console.error('Unexpected API response structure:', result);
+              }
+          } catch (error) {
+              comparisonInsightsOutput.innerHTML = `<p class="text-red-500">Error fetching insights: ${error.message}</p>`;
+              console.error('Error fetching comparison insights:', error);
+          } finally {
+              getComparisonInsightsButtonText.classList.remove('hidden');
+              getComparisonInsightsLoadingContent.classList.add('hidden');
+              setComparisonInsightsButtonState();
+          }
+      });
+
+      // --- Initial Load ---
+      renderCategoryFilters();
+      renderReportsList();
+      setInsightsButtonState();
+    </script>
+  </body>
+</html>
